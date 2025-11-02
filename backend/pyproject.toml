@@ -5,8 +5,8 @@ description = ""
 authors = [
     {name = "Miler",email = "estudos.miler@gmail.com"}
 ]
-readme = "README.md"
-requires-python = ">=3.12"
+readme = ""
+requires-python = ">=3.12, <3.15"
 dependencies = [
     "fastapi[standard] (>=0.119.0,<0.120.0)",
     "uvicorn (>=0.37.0,<0.38.0)",
@@ -14,7 +14,12 @@ dependencies = [
     "yfinance (>=0.2.66,<0.3.0)",
     "pandas (>=2.3.3,<3.0.0)",
     "python-dotenv (>=1.1.1,<2.0.0)",
-    "pydantic (>=2.12.0,<3.0.0)"
+    "pydantic (>=2.12.0,<3.0.0)",
+    "numpy (>=2.3.4,<3.0.0)",
+    "scikit-learn (>=1.7.2,<2.0.0)",
+    "joblib (>=1.5.2,<2.0.0)",
+    "matplotlib (>=3.10.7,<4.0.0)",
+    "torch (>=2.9.0,<3.0.0)"
 ]
 
 

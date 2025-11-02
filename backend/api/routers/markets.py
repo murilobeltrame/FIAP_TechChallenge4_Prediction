@@ -5,12 +5,12 @@ from schemas.stock import TickerList
 router = APIRouter()
 provider = StockProvider()
 
-# @router.get("/markets")
-# async def get_markets():
-#     return {"markets": ["br", "us"]}
-
 @router.get("/stocks", response_model=TickerList)
 async def list_stocks(market: str = Query(..., description="br or us")):
+    """
+    Retorna uma lista com todos os tickers baseado no mercado selecionado.
+    Os mercados atualmente disponíveis são BR e US.
+    """
     try:
         items = provider.get_tickers_by_market(market)
         return {"market": market, "tickers": items}

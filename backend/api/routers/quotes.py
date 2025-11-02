@@ -7,6 +7,9 @@ provider = StockProvider()
 
 @router.post("/quote", response_model=QuoteResponse)
 async def get_quote(req: QuoteRequest):
+    """
+    Retorna os valores da ação pesquisada, referente aos ultimos 30 dias.
+    """
     try:
         print(req.ticker)
         data = provider.get_quote(req.ticker, days=30)

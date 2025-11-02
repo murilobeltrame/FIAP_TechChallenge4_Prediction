@@ -6,7 +6,6 @@ export default function QuoteResult({ quote, loading }) {
   const chartRef = useRef(null);
 
   useEffect(() => {
-    // quando quote muda, atualiza gráfico
     if (chartRef.current) {
       chartRef.current.destroy();
       chartRef.current = null;
@@ -26,7 +25,7 @@ export default function QuoteResult({ quote, loading }) {
           data,
           tension: 0.25,
           borderWidth: 2,
-          pointRadius: 0,
+          // pointRadius: 0,
           fill: true,
           backgroundColor: "rgba(37,99,235,0.12)",
           borderColor: "rgba(37,99,235,1)"
@@ -44,7 +43,6 @@ export default function QuoteResult({ quote, loading }) {
       }
     });
 
-    // cleanup
     return () => {
       if (chartRef.current) {
         chartRef.current.destroy();

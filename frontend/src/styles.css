@@ -192,6 +192,29 @@ label.form-label {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.trained-section {
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 16px;
+}
+
+.trained-section h3 {
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.trained-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.trained-section li {
+  margin: 4px 0;
+  color: #333;
+}
+
+
 /* error message */
 .error {
   background: #ffecec;

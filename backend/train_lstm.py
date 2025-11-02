@@ -12,6 +12,7 @@ import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import joblib
+from datetime import datetime  # ✅ adicionado para log
 
 var_input_size = 5
 var_hidden_size = 128
@@ -111,6 +112,10 @@ def train(symbol, start, end, look_back=60, epochs=50, batch_size=32, lr=0.001, 
     best_val = float("inf")
     best_state = None
 
+    log_path = Path(model_dir).parent / "training.log"
+    with open(log_path, "a", encoding="utf-8") as log:
+        log.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 Iniciando treino: {symbol}\n")
+
     # Treinamento
     print(f"[TRAIN] Treinando {symbol} com 5 features...")
     for epoch in range(epochs):
@@ -166,7 +171,14 @@ def train(symbol, start, end, look_back=60, epochs=50, batch_size=32, lr=0.001, 
 
     mae = mean_absolute_error(y_true_inv, preds_inv)
     rmse = math.sqrt(mean_squared_error(y_true_inv, preds_inv))
-    print(f"[EVAL] MAE={mae:.4f} RMSE={rmse:.4f}")
+    mape = np.mean(np.abs((y_true_inv - preds_inv) / y_true_inv)) * 100  
+
+    print(f"[EVAL] MAE={mae:.4f} RMSE={rmse:.4f} MAPE={mape:.2f}%")
+
+    # Adiciona log de finalização de treino
+    
+    with open(log_path, "a", encoding="utf-8") as log:
+        log.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Treino finalizado: {symbol} | MAE={mae:.4f} | RMSE={rmse:.4f} | MAPE={mape:.2f}%\n")
 
     # Salvar modelo e scaler
     if model_dir is None:
@@ -177,7 +189,11 @@ def train(symbol, start, end, look_back=60, epochs=50, batch_size=32, lr=0.001, 
     joblib.dump(scaler, model_path / "scaler.pkl")
 
     print(f"[SAVE] Modelo salvo em {model_path.resolve()}")
-    return {"symbol": symbol, "mae": mae, "rmse": rmse}
+    mae = float(mae)
+    rmse = float(rmse)
+    mape = float(mape)
+
+    return {"symbol": symbol, "mae": mae, "rmse": rmse, "mape": mape}  
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

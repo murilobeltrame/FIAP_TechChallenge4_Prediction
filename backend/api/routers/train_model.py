@@ -38,14 +38,18 @@ async def train_model(request: TrainRequest):
             batch_size=request.batch_size,
             model_dir=model_dir
         )
-        save_log(
-            f"✅ Treino finalizado: {request.symbol} | MAE={result['mae']:.4f} | RMSE={result['rmse']:.4f}"
-            )
+
+        formatted_result = {
+            "symbol": result["symbol"],
+            "mae": round(result["mae"], 4),
+            "rmse": round(result["rmse"], 4),
+            "mape": f"{result['mape']:.2f}%"
+        }
 
         return {
             "status": "success",
             "message": f"Treinamento do modelo para {request.symbol} concluído.",
-            "result": result
+            "result": formatted_result
         }
 
     except Exception as e:

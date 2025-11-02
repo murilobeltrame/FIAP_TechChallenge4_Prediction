@@ -1,16 +1,22 @@
-# Tech Challenge fase 4
+# 🧠 Tech Challenge — Fase 4 (Previsão de Ações com FastAPI + PyTorch + React)
 
-Este projeto é uma aplicação completa com **FastAPI** (backend) e **React** (frontend) que permite consultar informações sobre ações brasileiras e americanas.
+Este projeto é uma aplicação completa com **FastAPI** (backend em Python) e **React** (frontend), que permite:
+
+📊 **Consultar informações de ações brasileiras e americanas**,  
+📈 **Treinar modelos LSTM em PyTorch**, e  
+🤖 **Prever preços futuros com base nos modelos treinados.**
 
 ---
 
-## 🚀 Funcionalidades
+## 🚀 Funcionalidades Principais
 
-- Seleção de mercado (Brasil / EUA)
-- Listagem dinâmica de ações conforme o mercado escolhido
-- Consulta de dados da ação (nome, segmento, ticker)
-- Exibição de gráfico com os preços dos últimos 30 dias
-- Arquitetura limpa e orientada a objetos
+✅ Seleção de mercado (Brasil / EUA)  
+✅ Listagem dinâmica de ações por origem  
+✅ Consulta de informações da ação (nome, ticker, segmento)  
+✅ Gráfico com histórico dos últimos 30 dias  
+✅ Treinamento de modelos LSTM em PyTorch  
+✅ Consulta de logs e métricas (MAE e RMSE)  
+✅ Frontend integrado (React + Chart.js)
 
 ---
 
@@ -21,27 +27,42 @@ FIAP_TechChallenge4_Prediction/
 │
 ├── backend/
 │   ├── api/
-│   │   └── routers/
-│   │       ├── markets.py
-│   │       └── quotes.py
-│   ├── schemas/
-│   │   └── stock.py
+│   │   └── routes/
+│   │       ├── markets.py             # Listagem de ações por mercado
+│   │       ├── quotes.py              # Consulta de dados e cotações
+│   │       ├── predict.py             # Predição de preços usando LSTM
+│   │       ├── trained_models.py      # Listagem de modelos treinados
+│   │       └── train_model.py         # endpoint para treinar modelos
+│   │
+│   ├── schemas/                       # Schemas Pydantic (validação de entrada)
+|   |   ├── predict.py
+|   |   ├── train_model.py            
+│   │   └── stock.py                   
+│   │
 │   ├── services/
-│   │   └── stock_provider.py
-│   ├── utils/
-│   │   └── date_utils.py
-│   └── main.py
-│   ├── pyproject.toml
-│   ├── static/
-│   └── tests/
+|   |   ├── lstm_service.py            # Serviço para  predição do preço de ações
+│   │   └── stock_provider.py          # Serviço para buscar dados de mercado
+│   │
+│   ├── ml_models/                     # Modelos treinados (um diretório por ticker)
+│   │   └── PETR4.SA/
+│   │       ├── model.pt
+│   │       └── scaler.pkl
+│   │
+│   ├── static/                        # Frontend build (React)
+│   ├── train_lstm.py                  # Script de treino em PyTorch (LSTM)
+│   ├── training.log                   # Log dos treinos executados via API
+│   ├── main.py                        # Ponto de entrada do backend FastAPI
+│   └── pyproject.toml
 │
 └── frontend/
     ├── src/
     │   ├── components/
     │   │   ├── MarketSelector.jsx
     │   │   ├── QuoteResult.jsx
-    │   │   └── TickerSelector.jsx
-    │   ├── App.jsx
+    │   │   ├── TickerSelector.jsx
+    │   │   ├── Prediction.jsx          # Exibe previsões gráficas
+    │   │   └── Quotes.jsx              # Exibe cotações detalhadas
+    │   ├── App.jsx                     # Estrutura principal do app React
     │   └── main.jsx
     ├── package.json
     ├── vite.config.js
@@ -61,28 +82,25 @@ cd FIAP_TechChallenge4_Prediction
 
 ---
 
-### 2️⃣ Backend (FastAPI + Poetry)
+### 2️⃣ Backend (FastAPI + Poetry + PyTorch)
 
-Se você não tem o Poetry instalado, instale seguindo as instruções em https://python-poetry.org/docs/#installation
+> Certifique-se de ter o **Python 3.10+** e o **Poetry** instalados.  
+> Instale o Poetry seguindo as instruções: https://python-poetry.org/docs/#installation
 
-**Instalar dependências e ativar um shell com o ambiente do Poetry:**
-
+#### Instalar dependências e ativar o ambiente virtual:
 ```bash
 cd backend
 poetry install
 poetry shell
 ```
 
-> Alternativa: para executar sem entrar no shell, use `poetry run <comando>` (ex.: `poetry run uvicorn app.main:app --reload`).
-
-**Rodar o servidor FastAPI:**
-
+#### Rodar o servidor FastAPI:
 ```bash
 poetry run uvicorn main:app --reload
 ```
 
-A API estará disponível em: `http://127.0.0.1:8000`  
-A documentação automática do FastAPI estará em: `http://127.0.0.1:8000/docs`
+- API: `http://127.0.0.1:8000`  
+- Swagger Docs: `http://127.0.0.1:8000/docs`  
 
 ---
 
@@ -95,45 +113,137 @@ npm install
 npm run dev
 ```
 
-O frontend será iniciado em: [http://localhost:5173](http://localhost:5173)
+O frontend será iniciado em:  
+➡️ [http://localhost:5173](http://localhost:5173)
 
-> Se preferir servir o frontend pelo backend em produção, gere o build (`npm run build`) e copie o conteúdo de `dist/` para a pasta `backend/static` (ou ajuste a configuração do FastAPI para servir os arquivos estáticos).
+---
+
+### 4️⃣ Servir o frontend pelo backend (modo produção)
+
+Após gerar o build:
+```bash
+npm run build
+```
+
+Copie o conteúdo de `frontend/dist/` para `backend/static/`:
+```bash
+# Linux/Mac
+cp -r frontend/dist/* backend/static/
+# Windows
+xcopy frontend\dist backend\static /E /I /Y
+```
+
+Agora o backend servirá o frontend diretamente em:  
+➡️ [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+
+---
+
+## 🧠 Endpoints (Modelos e Predições)
+
+### 🔹 `/api/train` → Inicia um treino de modelo
+**POST**
+```json
+{
+  "symbol": "PETR4.SA",
+  "epochs": 60,
+  "look_back": 60,
+  "batch_size": 32
+}
+```
+
+📤 **Resposta:**
+```json
+{
+  "status": "success",
+  "message": "Treinamento do modelo para PETR4.SA concluído.",
+  "result": {
+    "symbol": "PETR4.SA",
+    "mae": 0.3963932991027832,
+    "rmse": 0.5205498082609175
+  }
+}
+```
+
+---
+
+### 🔹 `/api/predict` → Realiza predição para um modelo já treinado
+
+**POST**
+```json
+{
+  "ticker": "PETR4.SA",
+  "days": 7
+}
+```
+
+📥 **Resposta:**
+```json
+{
+  "ticker": "PETR4.SA",
+  "predictions": [
+    {"date": "2025-11-01", "predicted": 37.85},
+    {"date": "2025-11-02", "predicted": 38.12},
+    {"date": "2025-11-03", "predicted": 38.54}
+  ]
+}
+```
+
+---
+
+## 🧾 Logs de Treinamento
+
+Todos os logs de execução e erros são armazenados automaticamente em:
+
+```
+backend/training.log
+```
+
+Exemplo:
+```
+[2025-11-02 18:21:43] ✅ Treino finalizado: PETR4.SA | MAE=0.3964 | RMSE=0.5205
+```
 
 ---
 
 ## 🧠 Tecnologias Utilizadas
 
-**Backend:**
-- Python
+**Backend**
+- Python 3.10+
 - FastAPI
-- Uvicorn
-- Poetry (gerenciamento de dependências)
-- Pydantic
+- PyTorch
 - yfinance
+- scikit-learn
+- Uvicorn
+- Poetry
 - Pydantic
 
-**Frontend:**
+**Frontend**
 - React
 - Vite
 - Chart.js
+- Fetch API
 
 ---
 
 ## 🧰 Próximos Passos
 
-- Adicionar Docker
-- Adicionar cache de resultados
+- Adicionar Docker para build completo (API + Frontend)
+- Criar cache de resultados de predições
+- Adicionar autenticação JWT (usuário/treino)
+- Dashboard com histórico de treinos
 
 ---
 
-## 🧑‍💻 Autor
+## 🧑‍💻 Autores
 
-- **Miler Azevedo**  
-📧 [GitHub](https://github.com/milerazevedo0)
-- **Arthur**
-- **Murilo**
-- **Kaio**
+| Nome | 
+|------|
+| **Miler Azevedo** | 
+| **Arthur** | 
+| **Murilo** | 
+| **Kaio** | 
 
 ---
 
-> Este projeto faz parte do aprendizado prático sobre integração entre **APIs**, **FastAPI**, **React**, e **serviços externos de dados financeiros**.
+> 📘 Projeto desenvolvido para o **FIAP Tech Challenge — Fase 4**,  
+> com foco em integração entre **APIs** e **Machine Learning (PyTorch)**.

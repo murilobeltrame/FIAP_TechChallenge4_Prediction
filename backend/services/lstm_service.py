@@ -45,7 +45,7 @@ def load_model_and_scaler(symbol):
 
     # Carrega modelo
     model = StockLSTM()
-    model.load_state_dict(torch.load(model_path, map_location="cpu"))
+    model.load_state_dict(torch.load(model_path, map_location="cpu", weights_only=True))
     model.eval()
 
     # Carrega scaler

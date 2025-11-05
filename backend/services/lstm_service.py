@@ -1,4 +1,3 @@
-# backend/services/lstm_service.py
 import torch
 import torch.nn as nn
 import numpy as np
@@ -62,14 +61,14 @@ def predict_future(symbol: str, days: int = 7, look_back: int = 60):
     """
     model, scaler = load_model_and_scaler(symbol)
 
-    # 🔽 Download dos dados mais recentes
+    # Download dos dados mais recentes
     df = yf.download(symbol, period="2y")
     df = df[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
 
     if len(df) < look_back:
         raise ValueError("Dados insuficientes para predição")
 
-    # 🔢 Normaliza os dados
+    # Normaliza os dados
     data = df.values.astype("float32")
     scaled = scaler.transform(data)
     seq = scaled[-look_back:].tolist()  # últimos N dias como janela inicial
@@ -80,7 +79,7 @@ def predict_future(symbol: str, days: int = 7, look_back: int = 60):
         with torch.no_grad():
             y_pred_scaled = model(X).item()
 
-        # ✅ Atualiza a sequência: substitui o fechamento (Close)
+        # Atualiza a sequência: substitui o fechamento (Close)
         new_row = seq[-1].copy()
         new_row[3] = y_pred_scaled
 
@@ -93,7 +92,7 @@ def predict_future(symbol: str, days: int = 7, look_back: int = 60):
         # adiciona a nova linha à sequência
         seq.append(new_row)
 
-        # 🔁 Reverte a escala apenas para o fechamento
+        # Reverte a escala apenas para o fechamento
         inv_full = np.zeros((1, 5))
         inv_full[0, 3] = y_pred_scaled
         inv = scaler.inverse_transform(inv_full)[0][3]

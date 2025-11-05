@@ -15,22 +15,18 @@ class StockProvider:
         retorna lista de dicts {'ticker': 'PETR4.SA', 'name': 'PETROBRAS'}
         """
         if market.lower() in ("br", "brazil", "brasil"):
-            # exemplo usando investpy para BR
-            df = investpy.stocks.get_stocks(country='brazil')  # retorna DataFrame
-            # a coluna 'symbol' ou 'ticker' pode variar; adapte conforme versão
+            df = investpy.stocks.get_stocks(country='brazil')  
+            # a coluna 'symbol' ou 'ticker' pode variar;
             items = []
             for _, row in df.iterrows():
                 # investpy geralmente tem 'symbol' ou 'ticker'
                 symbol = row.get('symbol') or row.get('ticker') or row.get('isin')
                 name = row.get('name') or row.get('company') or None
                 if symbol:
-                    # no B3 frequentemente o ticker precisa de .SA (depende da fonte)
                     items.append({'ticker': symbol, 'name': name})
             return items
 
         elif market.lower() in ("us", "usa", "america"):
-            # Para US, investpy também pode ter, mas podemos usar yfinance para validar
-            # vamos buscar um conjunto reduzido ou usar investpy country='united states'
             df = investpy.stocks.get_stocks(country='united states')
             items = []
             for _, row in df.iterrows():

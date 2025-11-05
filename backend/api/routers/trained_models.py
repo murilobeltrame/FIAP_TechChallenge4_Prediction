@@ -1,4 +1,3 @@
-# backend/routes/trained_models.py
 from fastapi import APIRouter, HTTPException
 from pathlib import Path
 

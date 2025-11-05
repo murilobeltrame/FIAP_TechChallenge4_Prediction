@@ -1,4 +1,3 @@
-# backend/app/api/routers/predict.py
 from fastapi import APIRouter, HTTPException
 from typing import Optional
 from services.lstm_service import predict_future

@@ -6,6 +6,7 @@ Este projeto é uma aplicação completa com **FastAPI** (backend em Python) e *
 📈 **Treinar modelos LSTM em PyTorch**, e  
 🤖 **Prever preços futuros com base nos modelos treinados.**
 
+Além disso, o sistema conta com **monitoramento de recursos (CPU, memória e GPU)** e **logs acessíveis via API**.
 ---
 
 ## 🚀 Funcionalidades Principais
@@ -14,8 +15,11 @@ Este projeto é uma aplicação completa com **FastAPI** (backend em Python) e *
 ✅ Listagem dinâmica de ações por origem  
 ✅ Consulta de informações da ação (nome, ticker, segmento)  
 ✅ Gráfico com histórico dos últimos 30 dias  
-✅ Treinamento de modelos LSTM em PyTorch  
-✅ Consulta de logs e métricas (MAE e RMSE)  
+✅ Treinamento de modelos LSTM em PyTorch   
+✅ Predição de valores futuros  
+✅ Monitoramento do sistema (CPU, RAM e GPU)  
+✅ Consulta de logs via API  
+✅ Métricas (MAE, RMSE e MAPE)
 ✅ Frontend integrado (React + Chart.js)
 
 ---
@@ -28,11 +32,13 @@ FIAP_TechChallenge4_Prediction/
 ├── backend/
 │   ├── api/
 │   │   └── routes/
+│   │       ├── logs.py                # Endpoints para consultar logs
 │   │       ├── markets.py             # Listagem de ações por mercado
-│   │       ├── quotes.py              # Consulta de dados e cotações
+│   │       ├── monitor.py             # Endpoint de monitoramento do sistema
 │   │       ├── predict.py             # Predição de preços usando LSTM
-│   │       ├── trained_models.py      # Listagem de modelos treinados
-│   │       └── train_model.py         # endpoint para treinar modelos
+│   │       ├── quotes.py              # Consulta de dados e cotações
+│   │       ├── train_model.py         # endpoint para treinar modelos
+│   │       └── trained_models.py      # Listagem de modelos treinados
 │   │
 │   ├── schemas/                       # Schemas Pydantic (validação de entrada)
 |   |   ├── predict.py
@@ -40,8 +46,15 @@ FIAP_TechChallenge4_Prediction/
 │   │   └── stock.py                   
 │   │
 │   ├── services/
-|   |   ├── lstm_service.py            # Serviço para  predição do preço de ações
+|   |   ├── lstm_service.py            # Serviço para predição do preço de ações
 │   │   └── stock_provider.py          # Serviço para buscar dados de mercado
+│   │
+│   ├── utils/
+|   |   └── monitor.py                 # Funções para obter uso de CPU, RAM e GPU
+│   │
+│   ├── logs/
+|   |   ├── api_requests.log           # Logs das requisições HTTP
+│   │   └── training.log               # Logs dos treinos de modelo
 │   │
 │   ├── ml_models/                     # Modelos treinados (um diretório por ticker)
 │   │   └── PETR4.SA/
@@ -60,8 +73,7 @@ FIAP_TechChallenge4_Prediction/
     │   │   ├── MarketSelector.jsx
     │   │   ├── QuoteResult.jsx
     │   │   ├── TickerSelector.jsx
-    │   │   ├── Prediction.jsx          # Exibe previsões gráficas
-    │   │   └── Quotes.jsx              # Exibe cotações detalhadas
+    │   │   └── Prediction.jsx          # Exibe previsões gráficas
     │   ├── App.jsx                     # Estrutura principal do app React
     │   └── main.jsx
     ├── package.json
@@ -187,22 +199,61 @@ Agora o backend servirá o frontend diretamente em:
   ]
 }
 ```
+---
 
 ---
 
-## 🧾 Logs de Treinamento
+### 🔹 `/api/monitor` → Retorna métricas de sistema:
 
-Todos os logs de execução e erros são armazenados automaticamente em:
+📥 **Resposta:**
+```json
+{
+  "status": "ok",
+  "metrics": {
+    "cpu_percent": 12.5,
+    "memory_percent": 58.3,
+    "gpu_name": "NVIDIA RTX 3060",
+    "gpu_memory_allocated_MB": 412.25,
+    "gpu_memory_total_MB": 6144.00
+  }
+}
 
 ```
-backend/training.log
-```
+---
 
-Exemplo:
-```
-[2025-11-02 18:21:43] ✅ Treino finalizado: PETR4.SA | MAE=0.3964 | RMSE=0.5205
-```
+---
 
+### 🔹 `/api/logs` → Listar e consultar logs salvos:
+
+##/api/logs → Lista logs disponíveis
+
+##/api/logs/api_requests → Últimas requisições da API
+
+##/api/logs/training → Últimos treinos registrados
+
+📁 Todos os logs ficam em:
+backend/logs/
+├── api_requests.log
+└── training.log
+
+Exemplo log de treinamento:
+```
+[2025-11-05 13:39:24] 🚀 Iniciando treino: PETR4.SA
+[2025-11-05 13:39:36] Treino finalizado: PETR4.SA | MAE=0.4398 | RMSE=0.5693 | MAPE=1.37%
+```
+Exemplo log de requisições:
+```
+2025-11-05 13:38:46,423 | INFO | GET /api/monitor - 0.520s - 200
+2025-11-05 13:39:36,723 | INFO | POST /api/train - 23.328s - 200
+```
+## 📊 Monitoramento e Logs
+
+| Tipo | Arquivo | Endpoint |
+|------|----------|-----------|
+| Requisições API | `logs/api_requests.log` | `/api/logs/api` |
+| Treinos LSTM | `logs/training.log` | `/api/logs/training` |
+| Recursos do sistema | — | `/api/monitor` |
+```
 ---
 
 ## 🧠 Tecnologias Utilizadas

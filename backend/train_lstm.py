@@ -1,4 +1,3 @@
-# backend/train_lstm.py
 import os
 import math
 import argparse
@@ -12,13 +11,17 @@ import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import joblib
-from datetime import datetime  # ✅ adicionado para log
+from datetime import datetime  
 
 var_input_size = 5
 var_hidden_size = 128
 var_num_layers = 2
 var_output_size = 1
 var_dropout = 0.2
+
+LOG_DIR = Path(__file__).resolve().parent / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+log_path = LOG_DIR / "training.log"
 
 # ============================================================
 # MODELO LSTM — múltiplas features (Open, High, Low, Close, Volume)
@@ -112,7 +115,6 @@ def train(symbol, start, end, look_back=60, epochs=50, batch_size=32, lr=0.001, 
     best_val = float("inf")
     best_state = None
 
-    log_path = Path(model_dir).parent / "training.log"
     with open(log_path, "a", encoding="utf-8") as log:
         log.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 Iniciando treino: {symbol}\n")
 

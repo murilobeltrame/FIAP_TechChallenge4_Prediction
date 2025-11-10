@@ -1,0 +1,134 @@
+name: Frontend Deployment
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'frontend/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run linting
+        working-directory: ./frontend
+        run: npm run lint || echo "Linting completed with warnings"
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Security scan with Snyk
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=frontend/package.json
+
+      - name: Upload Snyk results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk.sarif
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 1
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: test-and-build
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get Static Web App details
+        id: get-swa
+        run: |
+          # Get Static Web App details from existing resource group
+          RG_NAME=$(az group list --query "[?contains(name, 'fiap-prediction')].name" -o tsv | head -1)
+          
+          if [ -z "$RG_NAME" ]; then
+            echo "❌ No FIAP Prediction resource group found. Please deploy infrastructure first."
+            exit 1
+          fi
+          
+          SWA_NAME=$(az staticwebapp list --resource-group $RG_NAME --query "[0].name" -o tsv)
+          SWA_HOSTNAME=$(az staticwebapp list --resource-group $RG_NAME --query "[0].defaultHostname" -o tsv)
+          
+          if [ -z "$SWA_NAME" ]; then
+            echo "❌ No Static Web App found in resource group $RG_NAME"
+            exit 1
+          fi
+          
+          echo "swa_name=$SWA_NAME" >> $GITHUB_OUTPUT
+          echo "swa_hostname=$SWA_HOSTNAME" >> $GITHUB_OUTPUT
+          echo "resource_group_name=$RG_NAME" >> $GITHUB_OUTPUT
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "./frontend"
+          api_location: ""
+          output_location: "dist"
+
+      - name: Display Deployment Details
+        run: |
+          echo "🚀 Frontend Deployment Complete!"
+          echo "🌐 Static Web App: ${{ steps.get-swa.outputs.swa_name }}"
+          echo "🔗 Live URL: https://${{ steps.get-swa.outputs.swa_hostname }}"
+          echo "📁 Resource Group: ${{ steps.get-swa.outputs.resource_group_name }}"
+          echo ""
+          echo "✅ Your application is now live and accessible!"

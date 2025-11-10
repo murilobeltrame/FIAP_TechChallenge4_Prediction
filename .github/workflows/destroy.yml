@@ -1,0 +1,71 @@
+name: Destroy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      resource_group_name:
+        description: 'Resource Group Name to destroy'
+        required: true
+        type: string
+      confirm_destroy:
+        description: 'Type "destroy" to confirm resource deletion'
+        required: true
+        type: string
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+jobs:
+  destroy-infrastructure:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.confirm_destroy == 'destroy' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.0"
+          terraform_wrapper: false
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Terraform Init
+        working-directory: ./environment
+        run: terraform init
+
+      - name: Import existing resources (if needed)
+        working-directory: ./environment
+        continue-on-error: true
+        run: |
+          # Try to import existing resource group
+          terraform import azurerm_resource_group.main /subscriptions/${{ env.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.resource_group_name }}
+
+      - name: Terraform Destroy
+        working-directory: ./environment
+        run: |
+          terraform destroy -auto-approve \
+            -var="resource_group_name=${{ inputs.resource_group_name }}"
+
+      - name: Cleanup Azure Resources (Fallback)
+        if: failure()
+        run: |
+          echo "Terraform destroy failed, attempting direct Azure CLI cleanup..."
+          az group delete --name "${{ inputs.resource_group_name }}" --yes --no-wait
+
+  confirm-destruction:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.confirm_destroy != 'destroy' }}
+    steps:
+      - name: Invalid confirmation
+        run: |
+          echo "❌ Destruction cancelled - confirmation text must be exactly 'destroy'"
+          echo "Provided: '${{ inputs.confirm_destroy }}'"
+          exit 1

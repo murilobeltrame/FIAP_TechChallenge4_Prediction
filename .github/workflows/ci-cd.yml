@@ -1,0 +1,53 @@
+name: FIAP Prediction - Deployment Overview
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deployment-overview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend/**'
+            environment:
+              - 'environment/**'
+
+      - name: Display deployment status
+        run: |
+          echo "## 🚀 FIAP TechChallenge4 Prediction - Deployment Overview"
+          echo ""
+          echo "### 📊 Change Detection:"
+          echo "- 🏗️  **Infrastructure (environment/)**: ${{ steps.changes.outputs.environment == 'true' && '✅ Changed - Will deploy' || '⏭️ No changes' }}"
+          echo "- 🐍 **Backend (backend/)**: ${{ steps.changes.outputs.backend == 'true' && '✅ Changed - Will deploy' || '⏭️ No changes' }}"
+          echo "- ⚛️  **Frontend (frontend/)**: ${{ steps.changes.outputs.frontend == 'true' && '✅ Changed - Will deploy' || '⏭️ No changes' }}"
+          echo ""
+          echo "### 🔄 Individual Workflows:"
+          echo "- Infrastructure changes trigger: **Infrastructure Deployment** workflow"
+          echo "- Backend changes trigger: **Backend Deployment** workflow"  
+          echo "- Frontend changes trigger: **Frontend Deployment** workflow"
+          echo ""
+          echo "### 📋 Deployment Order:"
+          echo "1. Infrastructure (creates Azure resources)"
+          echo "2. Backend (builds and pushes Docker image to ACR)"
+          echo "3. Frontend (deploys to Static Web Apps)"
+          echo ""
+          if [ "${{ steps.changes.outputs.environment }}" == "true" ] || [ "${{ steps.changes.outputs.backend }}" == "true" ] || [ "${{ steps.changes.outputs.frontend }}" == "true" ]; then
+            echo "🎯 **Action Required**: Check individual workflow runs for detailed deployment status"
+          else
+            echo "✨ **No Deployment Needed**: No changes detected in application folders"
+          fi

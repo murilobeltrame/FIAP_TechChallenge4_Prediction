@@ -95,3 +95,6 @@ pnpm-debug.log*
 # ============================
 # ✅ Fim do .gitignore
 # ============================
+
+# Snyk Security Extension - AI Rules (auto-generated)
+.github\instructions\snyk_rules.instructions.md

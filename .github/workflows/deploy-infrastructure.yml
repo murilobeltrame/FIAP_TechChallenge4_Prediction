@@ -1,0 +1,80 @@
+name: Infrastructure Deployment
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'environment/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'environment/**'
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+jobs:
+  deploy-infrastructure:
+    runs-on: ubuntu-latest
+    outputs:
+      acr-login-server: ${{ steps.terraform-output.outputs.acr_login_server }}
+      acr-username: ${{ steps.terraform-output.outputs.acr_admin_username }}
+      static-web-app-name: ${{ steps.terraform-output.outputs.static_web_app_name }}
+      resource-group-name: ${{ steps.terraform-output.outputs.resource_group_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.0"
+          terraform_wrapper: false
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Terraform Init
+        working-directory: ./environment
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: ./environment
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./environment
+        run: |
+          terraform plan -input=false \
+            -var="resource_group_name=rg-fiap-prediction-${{ github.run_number }}" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: ./environment
+        if: github.event_name == 'push'
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get Terraform Outputs
+        id: terraform-output
+        working-directory: ./environment
+        if: github.event_name == 'push'
+        run: |
+          echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
+          echo "acr_admin_username=$(terraform output -raw acr_admin_username)" >> $GITHUB_OUTPUT
+          echo "static_web_app_name=$(terraform output -raw static_web_app_name)" >> $GITHUB_OUTPUT
+          echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
+
+      - name: Display Infrastructure Details
+        if: github.event_name == 'push'
+        run: |
+          echo "🚀 Infrastructure Deployment Complete!"
+          echo "📋 Resource Group: ${{ steps.terraform-output.outputs.resource_group_name }}"
+          echo "🐳 ACR Login Server: ${{ steps.terraform-output.outputs.acr_login_server }}"
+          echo "🌐 Static Web App: ${{ steps.terraform-output.outputs.static_web_app_name }}"
+          echo ""
+          echo "🔗 Azure Portal: https://portal.azure.com/#@/resource/subscriptions/${{ env.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ steps.terraform-output.outputs.resource_group_name }}"

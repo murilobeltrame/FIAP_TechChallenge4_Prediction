@@ -25,6 +25,9 @@ dependencies = [
     "prometheus-fastapi-instrumentator (>=7.1.0,<8.0.0)"
 ]
 
+[tool.poetry]
+package-mode = false
+
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

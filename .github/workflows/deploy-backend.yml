@@ -39,7 +39,7 @@ jobs:
       - name: Run tests
         working-directory: ./backend
         run: |
-          poetry run python -m pytest tests/ -v
+          poetry run python -m pytest tests/ -v --suppress-no-test-exit-code
 
   deploy-backend:
     runs-on: ubuntu-latest

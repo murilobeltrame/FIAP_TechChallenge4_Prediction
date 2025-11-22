@@ -40,13 +40,6 @@ ENV PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
     PORT=8000
 
-# # Install runtime dependencies and security updates
-# RUN apt-get update && apt-get install -y --no-install-recommends \
-#     ca-certificates \
-#     && apt-get upgrade -y \
-#     && rm -rf /var/lib/apt/lists/* \
-#     && apt-get clean
-
 # # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 

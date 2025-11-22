@@ -51,64 +51,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          auth-type: IDENTITY
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Get ACR credentials from existing deployment
-        id: get-acr
-        run: |
-          # Get ACR details from existing resource group
-          RG_NAME=$(az group list --query "[?contains(name, 'fiap-prediction')].name" -o tsv | head -1)
-          
-          if [ -z "$RG_NAME" ]; then
-            echo "❌ No FIAP Prediction resource group found. Please deploy infrastructure first."
-            exit 1
-          fi
-          
-          ACR_NAME=$(az acr list --resource-group $RG_NAME --query "[0].name" -o tsv)
-          ACR_LOGIN_SERVER=$(az acr list --resource-group $RG_NAME --query "[0].loginServer" -o tsv)
-          
-          if [ -z "$ACR_NAME" ]; then
-            echo "❌ No Azure Container Registry found in resource group $RG_NAME"
-            exit 1
-          fi
-          
-          echo "acr_name=$ACR_NAME" >> $GITHUB_OUTPUT
-          echo "acr_login_server=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
-          echo "resource_group_name=$RG_NAME" >> $GITHUB_OUTPUT
-
       - name: Build and push Docker image
         working-directory: ./backend
         run: |
-          # Enable admin user on ACR
-          az acr update --name ${{ steps.get-acr.outputs.acr_name }} --admin-enabled true
-          
-          # Get ACR credentials
-          ACR_USERNAME=$(az acr credential show --name ${{ steps.get-acr.outputs.acr_name }} --query "username" -o tsv)
-          ACR_PASSWORD=$(az acr credential show --name ${{ steps.get-acr.outputs.acr_name }} --query "passwords[0].value" -o tsv)
-          
-          # Login to ACR
-          echo $ACR_PASSWORD | docker login ${{ steps.get-acr.outputs.acr_login_server }} --username $ACR_USERNAME --password-stdin
-          
           # Build and tag image
-          docker build -t ${{ steps.get-acr.outputs.acr_login_server }}/fiap-prediction-backend:${{ github.sha }} .
-          docker build -t ${{ steps.get-acr.outputs.acr_login_server }}/fiap-prediction-backend:latest .
+          docker build -t ${{ vars.ACR_SERVER }}/fiap-prediction-backend:${{ github.sha }} .
+          docker build -t ${{ vars.ACR_SERVER }}/fiap-prediction-backend:latest .
           
+          # Docker Login
+          docker login ${{ vars.ACR_SERVER }} --username ${{ secrets.ACR_USERNAME }} --password ${{ secrets.ACR_PASSWORD }}
+
           # Push image
-          docker push ${{ steps.get-acr.outputs.acr_login_server }}/fiap-prediction-backend:${{ github.sha }}
-          docker push ${{ steps.get-acr.outputs.acr_login_server }}/fiap-prediction-backend:latest
+          docker push ${{ vars.ACR_SERVER }}/fiap-prediction-backend:${{ github.sha }}
+          docker push ${{ vars.ACR_SERVER }}/fiap-prediction-backend:latest
 
       - name: Display Deployment Details
         run: |
           echo "🚀 Backend Deployment Complete!"
-          echo "🐳 Container Registry: ${{ steps.get-acr.outputs.acr_login_server }}"
+          echo "🐳 Container Registry: ${{ vars.ACR_SERVER }}"
           echo "📦 Image: fiap-prediction-backend:${{ github.sha }}"
           echo "📦 Latest: fiap-prediction-backend:latest"
           echo ""
           echo "🔧 Docker Pull Command:"
-          echo "docker pull ${{ steps.get-acr.outputs.acr_login_server }}/fiap-prediction-backend:latest"
+          echo "docker pull ${{ vars.ACR_SERVER }}/fiap-prediction-backend:latest"

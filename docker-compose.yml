@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Backend Service - FastAPI + PyTorch
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tech-challenge-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+      - BACKEND_ROOT=/app
+      - PYTHONPATH=/app
+      - ALLOWED_ORIGINS=http://localhost:5173,http://frontend:5173
+    volumes:
+      - ./backend/ml_models:/app/ml_models
+      - ./backend/logs:/app/logs
+      - ./backend/static:/app/static
+    networks:
+      - tech-challenge-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/monitor')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    command: poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+
+  # Frontend Service - React + Vite
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tech-challenge-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://backend:8000
+    networks:
+      - tech-challenge-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  tech-challenge-network:
+    driver: bridge
+
+volumes:
+  ml_models:
+  logs:
+  static:

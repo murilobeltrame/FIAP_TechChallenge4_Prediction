@@ -150,6 +150,34 @@ Agora o backend servirá o frontend diretamente em:
 
 ---
 
+## 🐳 Execução com Docker Compose
+
+> Requisitos: Docker e Docker Compose instalados.
+
+O projeto já inclui um arquivo de orquestração em [docker-compose.yml](docker-compose.yml) na raiz. Ele constrói e sobe os serviços de backend (FastAPI) e frontend (Vite) usando os respectivos Dockerfiles.
+
+```bash
+# Na raiz do projeto
+docker compose up -d --build
+
+# Acompanhar logs
+docker compose logs -f backend
+docker compose logs -f frontend
+
+# Parar e remover os containers
+docker compose down
+```
+
+**Acessos:**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- Documentação Swagger: http://localhost:8000/docs
+
+**Detalhes:**
+- O `frontend` se comunica com o `backend` via `http://backend:8000` (definido por variável `VITE_API_BASE_URL`).
+- Volumes mapeados preservam modelos e logs entre execuções: `backend/ml_models`, `backend/logs` e `backend/static`.
+- O backend expõe `/api/monitor` para healthcheck.
+
 ## 🧠 Endpoints (Modelos e Predições)
 
 ### 🔹 `/api/train` → Inicia um treino de modelo

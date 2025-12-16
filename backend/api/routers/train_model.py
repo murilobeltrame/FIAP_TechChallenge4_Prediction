@@ -4,7 +4,11 @@ from pathlib import Path
 import sys
 import traceback
 from datetime import datetime
-from train_lstm import train
+import os
+
+# Get absolute path to backend root directory
+backend_root = Path(os.environ.get("BACKEND_ROOT", Path(__file__).resolve().parent.parent.parent))
+sys.path.insert(0, str(backend_root))
 
 router = APIRouter()
 
@@ -27,6 +31,9 @@ async def train_model(request: TrainRequest):
     }
     """
     try:
+        # Lazy import to ensure PYTHONPATH is properly set
+        from train_lstm import train
+        
         model_dir = str(Path(__file__).resolve().parents[2] / "ml_models")
 
         result = train(

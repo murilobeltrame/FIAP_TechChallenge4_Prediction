@@ -1,85 +1,52 @@
-# Multi-stage build for production-ready container
-FROM python:3.14-slim AS base
+# Build stage
+FROM python:3.12-slim AS builder
 
-ARG DEBIAN_FRONTEND=noninteractive
-
-RUN apt update \
-    && apt upgrade -y \
-    && apt install -y ca-certificates \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt clean
-
-FROM base AS builder
 WORKDIR /app
 
-# Install build dependencies
-RUN apt update \
-    && apt install -y build-essential curl gcc pipx \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt clean
+# Install system dependencies and Poetry
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
-RUN pip install poetry
-
-# Create virtual environment
-ENV POETRY_VIRTUALENVS_IN_PROJECT=true
-ENV POETRY_NO_INTERACTION=1
+RUN pip install --no-cache-dir poetry
 
 # Copy dependency files
-COPY pyproject.toml .
+COPY pyproject.toml poetry.lock* /app/
 
-# Install Python dependencies
-RUN poetry install --no-root
+# Install Python dependencies (production only)
+RUN poetry install --only main --no-root --no-directory
 
-# # Production stage
-FROM base AS production
+# Production stage
+FROM python:3.12-slim
 
-# # Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PATH="/opt/venv/bin:$PATH" \
-    PORT=8000
-
-# # Create non-root user for security
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# # Copy virtual environment from builder
-COPY --from=builder /app/.venv /opt/venv
-
-# # Set working directory
 WORKDIR /app
 
-# # Copy application code with proper ownership
-COPY --chown=appuser:appuser . .
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
-# # Ensure ml_models directory exists and has proper permissions
-RUN mkdir -p /app/ml_models && \
-    chown -R appuser:appuser /app && \
-    chmod -R 755 /app
+# Copy virtual environment from builder
+COPY --from=builder /root/.cache/pypoetry/virtualenvs /root/.cache/pypoetry/virtualenvs
 
-# # Switch to non-root user
-USER appuser
-# # Create directory for logs with proper permissions
-RUN mkdir -p /app/logs
+# Copy application code
+COPY . /app/
 
-# # Health check
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-#     CMD python -c "import requests; requests.get('http://localhost:${PORT}/docs', timeout=5)" || exit 1
+# Install Poetry for runtime (lightweight)
+RUN pip install --no-cache-dir poetry
 
-# # Expose port
-EXPOSE ${PORT}
+# Set backend root environment variable
+ENV BACKEND_ROOT=/app
+ENV PYTHONPATH=/app
 
-# # Use Gunicorn for production with optimal settings
-CMD ["gunicorn", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "4", \
-     "--worker-class", "uvicorn.workers.UvicornWorker", \
-     "--worker-connections", "1000", \
-     "--max-requests", "1000", \
-     "--max-requests-jitter", "50", \
-     "--timeout", "120", \
-     "--keep-alive", "5", \
-     "--log-level", "info", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "main:app"]
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/monitor')" || exit 1
+
+# Run Uvicorn with workers
+CMD ["poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
